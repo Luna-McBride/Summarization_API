@@ -1,0 +1,13 @@
+services:
+  restcontainer:
+    image: fastapi-summarization:latest
+    container_name: rest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - internalnet
+
+networks:
+  internalnet:
+    driver: bridge

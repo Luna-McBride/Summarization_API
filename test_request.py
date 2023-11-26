@@ -1,5 +1,16 @@
-import requests
+import requests #Import requests to send to the api
+import urllib
+import os
+import json
 
+from dotenv import load_dotenv #Import to get items from the .env file
+
+load_dotenv(override = True)
+
+import google.auth.transport.requests
+import google.oauth2.id_token
+
+#Add a default article for testing
 ARTICLE = """ New York (CNN)When Liana Barrientos was 23 years old, she got married in Westchester County, New York.
 A year later, she got married again in Westchester County, but to a different man and without divorcing her first husband.
 Only 18 days after that marriage, she got hitched yet again. Then, Barrientos declared "I do" five more times, sometimes only within two weeks of each other.
@@ -18,9 +29,36 @@ Investigation Division. Seven of the men are from so-called "red-flagged" countr
 Her eighth husband, Rashid Rajput, was deported in 2006 to his native Pakistan after an investigation by the Joint Terrorism Task Force.
 If convicted, Barrientos faces up to four years in prison.  Her next court appearance is scheduled for May 18.
 """
-url = "http://127.0.0.1:8000/api/"
-req = {"grade_level":6, "text":ARTICLE}
-summary = requests.post(url, json = req)
-summary_json = summary.json()
+audience = "https://equalizer-summarization-dwh7tpkipq-uw.a.run.app/"
+url = "https://equalizer-summarization-dwh7tpkipq-uw.a.run.app/api/" #Add the link to the basic FastAPI landing
+requ = {"grade_level":6, "text":ARTICLE} #Set the grade level and article to senf
+data = json.dumps(requ)
+data = data.encode()
 
-print(summary_json["message"])
+
+
+try:
+	req = urllib.request.Request(url, data = data, method = "POST")
+
+	auth_req = google.auth.transport.requests.Request()
+	id_token = google.oauth2.id_token.fetch_id_token(auth_req, audience)
+
+	req.add_header('Content-Type', 'application/json')
+	req.add_header("Authorization", f"Bearer {id_token}")
+	response = urllib.request.urlopen(req)
+except urllib.error.HTTPError as e:
+	redirect = urllib.parse.urljoin(url, e.headers["location"])
+	req_red = urllib.request.Request(redirect, data = data)
+	print(redirect)
+
+	auth_req = google.auth.transport.requests.Request()
+	id_token = google.oauth2.id_token.fetch_id_token(auth_req, audience)
+
+	req_red.add_header('Content-Type', 'application/json')
+	req_red.add_header("Authorization", f"Bearer {id_token}")
+	response = urllib.request.urlopen(req_red)
+
+#summary = requests.post(url, json = req) #Send the request to the API
+#summary_json = summary.json() #Get the response in JSON for easier usage
+
+print(response.read().decode("utf-8")) #Print the returned message
